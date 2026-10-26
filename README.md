@@ -283,49 +283,12 @@ Follow this script to demonstrate the project seamlessly during an evaluation or
 
 ---
 
-## 8. Academic Scope, Security & Viva Questions
-
-### Frequently Asked Viva Questions
-
-**Q1: Why is a smart contract suitable for voting?**
-> A: Traditional digital voting relies on centralized databases that can be modified or manipulated by database administrators. A smart contract on Ethereum guarantees that voting rules (e.g., one vote per address, election lifecycle, immutable tally) are executed deterministically and autonomously without relying on a centralized intermediary.
-
-**Q2: What prevents double voting in this contract?**
-> A: Inside `Voting.sol`, each voter is represented by a `struct Voter { bool isRegistered; bool hasVoted; uint256 votedCandidateId; }` mapped by wallet address (`mapping(address => Voter) public voters`). When a vote is cast, `require(!sender.hasVoted, "You have already cast your vote")` verifies the flag, and `sender.hasVoted = true` is executed before incrementing the vote count, preventing double votes and reentrancy.
-
-**Q3: How does the contract ensure only the administrator can add candidates or register voters?**
-> A: Through the `onlyAdmin` function modifier:
-> ```solidity
-> modifier onlyAdmin() {
->     require(msg.sender == admin, "Access denied: Only admin can perform this action");
->     _;
-> }
-> ```
-> The deployer address is saved to `admin` in the constructor and cannot be modified.
-
-**Q4: Is this system ready for a nationwide real-world election?**
-> A: No. This project is an **educational prototype**. Real-world elections require:
-> 1. **Biometric Sybil Resistance:** Wallet addresses demonstrate cryptographic ownership of a private key, but do not prove one real-world person per wallet.
-> 2. **Ballot Secrecy / Zero-Knowledge Proofs:** On Ethereum, all state changes and event logs (`VoteCast`) are publicly readable on-chain. Real elections require Zero-Knowledge Proofs (e.g., zk-SNARKs / MACI) to prevent vote buying and coercion while maintaining privacy.
-
----
-
-## 9. How to Push This Project to Your GitHub
-
-Run these commands in your project root terminal:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: Decentralized Blockchain Voting System"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-git push -u origin main
-```
-*(The `.gitignore` file automatically excludes `node_modules`, cache, and artifacts to keep your repository clean and lightweight).*
-
----
-
-## 10. License
+## 8. License
 
 This project is licensed under the [MIT License](LICENSE). Developed as an educational reference for students and blockchain enthusiasts.
+
+
+---
+
+## Author: 
+- SS-2005 (Sahil Shaikh)
