@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decentralized Voting System | Blockchain DApp</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Ethers.js v6 library from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+  <!-- Contract deployment address and ABI generated automatically by scripts/deploy.js -->
+  <script src="contract-data.js"></script>
+</head>
+<body>
+  <!-- Header Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="logo-icon">🗳️</div>
+        <div>
+          <h1>Decentralized Voting System</h1>
+          <p class="subtitle">Ethereum Smart Contract • College Mini-Project Demonstration</p>
+        </div>
+      </div>
+
+      <div class="wallet-bar">
+        <!-- Network Badge -->
+        <div id="networkBadge" class="badge badge-warning">
+          <span class="dot"></span>
+          <span id="networkName">Network: Disconnected</span>
+        </div>
+
+        <!-- Connect Wallet Button -->
+        <button id="connectWalletBtn" class="btn btn-primary">
+          <span id="walletBtnIcon">🦊</span>
+          <span id="walletBtnText">Connect MetaMask</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="main-container">
+
+    <!-- Global Alert / Status Banner -->
+    <div id="statusAlert" class="alert d-none">
+      <div class="alert-content">
+        <span id="alertIcon" class="alert-icon">ℹ️</span>
+        <span id="alertMessage" class="alert-message">System ready.</span>
+      </div>
+      <button id="alertCloseBtn" class="alert-close">&times;</button>
+    </div>
+
+    <!-- Network Warning Banner (Shown if wrong chain) -->
+    <div id="networkWarning" class="alert alert-danger d-none">
+      <div class="alert-content">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <strong>Incorrect Network Detected!</strong>
+          <p>Please switch your MetaMask network to <strong>Hardhat Localhost (Chain ID: 31337 / RPC: http://127.0.0.1:8545)</strong>.</p>
+        </div>
+      </div>
+      <button id="switchNetworkBtn" class="btn btn-sm btn-outline">Switch to Hardhat Localhost</button>
+    </div>
+
+    <!-- Contract Address Warning Banner (Shown if contract address not configured) -->
+    <div id="configWarning" class="alert alert-warning d-none">
+      <div class="alert-content">
+        <span class="alert-icon">⚙️</span>
+        <div>
+          <strong>Smart Contract Not Deployed Yet!</strong>
+          <p>Deploy the contract using <code>npx hardhat run scripts/deploy.js --network localhost</code> or manually enter the contract address below.</p>
+        </div>
+      </div>
+      <div class="manual-address-input">
+        <input type="text" id="manualContractAddress" placeholder="0x5FbDB2315678afecb367f032d93F642f64180aa3" />
+        <button id="saveManualAddressBtn" class="btn btn-sm btn-primary">Connect Contract</button>
+      </div>
+    </div>
+
+    <!-- Overview Statistics Grid -->
+    <section class="stats-grid">
+      <!-- Election State Card -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Election Status</span>
+          <span id="electionStateBadge" class="badge badge-neutral">Not Started</span>
+        </div>
+        <div class="stat-value" id="electionStateText">Not Started</div>
+        <p class="stat-desc" id="electionStateSub">Candidates are being registered</p>
+      </div>
+
+      <!-- Total Votes Card -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Total Votes Cast</span>
+          <span class="stat-icon">📊</span>
+        </div>
+        <div class="stat-value" id="totalVotesText">0</div>
+        <p class="stat-desc">Direct on-chain verified tally</p>
+      </div>
+
+      <!-- Total Candidates Card -->
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-title">Candidates</span>
+          <span class="stat-icon">👥</span>
+        </div>
+        <div class="stat-value" id="candidateCountText">0</div>
+        <p class="stat-desc">Competing in this election</p>
+      </div>
+
+      <!-- User Role & Voter Status Card -->
+      <div class="stat-card highlight-card">
+        <div class="stat-header">
+          <span class="stat-title">Your Wallet Status</span>
+          <span id="userRoleBadge" class="badge badge-neutral">Guest</span>
+        </div>
+        <div class="stat-value small-text" id="voterStatusText">Wallet Disconnected</div>
+        <p class="stat-desc" id="voterStatusSub">Connect MetaMask to participate</p>
+      </div>
+    </section>
+
+    <!-- Administrator Section -->
+    <section id="adminSection" class="panel admin-panel">
+      <div class="panel-header">
+        <div class="panel-title-wrapper">
+          <span class="panel-icon">🔐</span>
+          <h2>Administrator Control Panel</h2>
+        </div>
+        <span class="badge badge-admin">Admin Only</span>
+      </div>
+
+      <div class="admin-grid">
+        <!-- Candidate Registration Form -->
+        <div class="admin-card">
+          <h3>➕ Register Candidate</h3>
+          <p class="card-caption">Candidates can only be registered before voting commences.</p>
+          <form id="addCandidateForm" class="form-group">
+            <label for="candidateName">Candidate Full Name *</label>
+            <input type="text" id="candidateName" placeholder="e.g. Alice Smith" required />
+
+            <label for="candidateDesc">Description / Department</label>
+            <input type="text" id="candidateDesc" placeholder="e.g. Computer Science Dept • Platform Reform" />
+
+            <button type="submit" id="addCandidateBtn" class="btn btn-primary btn-block">Add Candidate</button>
+          </form>
+        </div>
+
+        <!-- Voter Registration Form -->
+        <div class="admin-card">
+          <h3>📋 Register Eligible Voter</h3>
+          <p class="card-caption">Whitelist an Ethereum wallet address to authorize one vote.</p>
+          <form id="registerVoterForm" class="form-group">
+            <label for="voterAddress">Voter Wallet Address (0x...) *</label>
+            <input type="text" id="voterAddress" placeholder="0x70997970C51812dc3A010C7d01b50e0d17dc79C8" required />
+
+            <button type="submit" id="registerVoterBtn" class="btn btn-secondary btn-block">Authorize Voter</button>
+          </form>
+        </div>
+
+        <!-- Election Lifecycle Control -->
+        <div class="admin-card">
+          <h3>⚡ Election Lifecycle</h3>
+          <p class="card-caption">Transitions are one-way: Setup &rarr; Ongoing &rarr; Ended.</p>
+
+          <div class="lifecycle-controls">
+            <div class="control-row">
+              <div>
+                <strong>Start Voting</strong>
+                <p class="hint">Requires at least 2 candidates. Closes candidate registration.</p>
+              </div>
+              <button id="startElectionBtn" class="btn btn-success">Start Election</button>
+            </div>
+
+            <hr class="divider" />
+
+            <div class="control-row">
+              <div>
+                <strong>End Voting</strong>
+                <p class="hint">Permanently stops voting and finalizes tally.</p>
+              </div>
+              <button id="endElectionBtn" class="btn btn-danger">End Election</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Candidates Section -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title-wrapper">
+          <span class="panel-icon">🗳️</span>
+          <h2>Official Candidates</h2>
+        </div>
+        <button id="refreshDataBtn" class="btn btn-sm btn-outline">🔄 Refresh</button>
+      </div>
+
+      <!-- Candidate Loading / Empty State -->
+      <div id="noCandidatesMessage" class="empty-state">
+        <p>No candidates have been registered yet.</p>
+        <span class="hint">The administrator must add at least 2 candidates before starting the election.</span>
+      </div>
+
+      <!-- Candidates Grid Container -->
+      <div id="candidatesGrid" class="candidates-grid d-none">
+        <!-- Candidate Cards rendered dynamically via app.js -->
+      </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title-wrapper">
+          <span class="panel-icon">🏆</span>
+          <h2>Election Results & Standings</h2>
+        </div>
+        <span id="resultsStateTag" class="badge badge-neutral">Live Tally</span>
+      </div>
+
+      <div id="winnerBanner" class="winner-banner d-none">
+        <div class="winner-icon">🎉</div>
+        <div>
+          <h3 id="winnerTitle">Election Winner</h3>
+          <p id="winnerSubtitle">Leading Candidate</p>
+        </div>
+      </div>
+
+      <div id="resultsTableContainer" class="results-table-container">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Candidate</th>
+              <th>Description</th>
+              <th>Votes</th>
+              <th>Percentage</th>
+            </tr>
+          </thead>
+          <tbody id="resultsTableBody">
+            <tr>
+              <td colspan="5" class="text-center">No votes recorded yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Educational & Security Disclosures Section -->
+    <footer class="education-footer">
+      <h3>Academic Demonstration Notice & Security Scope</h3>
+      <div class="footer-grid">
+        <div class="footer-item">
+          <h4>🧪 Educational Prototype</h4>
+          <p>This project demonstrates decentralized state management on Ethereum. It uses a local Hardhat testnet with simulated ETH and no real monetary value.</p>
+        </div>
+        <div class="footer-item">
+          <h4>🔍 On-Chain Transparency</h4>
+          <p>All votes and transactions are permanently stored in smart contract storage and emitted in events, making the count publicly auditable and tamper-evident.</p>
+        </div>
+        <div class="footer-item">
+          <h4>🛡️ Wallet Identity Scope</h4>
+          <p>Authorizing an address guarantees one vote per authorized keypair, but does not provide real-world biometric sybil resistance or identity binding.</p>
+        </div>
+      </div>
+      <p class="copyright">Built for College Blockchain Mini-Project Demonstration • Powered by Solidity, Hardhat, Ethers.js & MetaMask</p>
+    </footer>
+
+  </main>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
